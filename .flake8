@@ -1,0 +1,6 @@
+[flake8]
+ignore = E722, W503, E203
+max-line-length = 80
+per-file-ignores =
+    __init__.py: F401
+exclude = migrations/*
