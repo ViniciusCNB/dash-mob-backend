@@ -42,3 +42,39 @@ class GeoJSONFeature(BaseModel):
 class GeoJSONFeatureCollection(BaseModel):
     type: str = "FeatureCollection"
     features: List[GeoJSONFeature]
+
+
+class EficienciaLinha(BaseModel):
+    id_linha: int
+    cod_linha: str
+    nome_linha: Optional[str] = None
+    passageiros_por_km: float
+    passageiros_por_minuto: float
+    total_passageiros: int
+
+
+class TaxaFalhasEmpresa(BaseModel):
+    id_empresa: int
+    nome_empresa: str
+    taxa_falhas_por_10k_viagens: float
+
+
+class FalhaPorJustificativa(BaseModel):
+    nome_justificativa: str
+    total_falhas: int
+
+
+class CorrelacaoIdadeFalha(BaseModel):
+    id_veiculo: int
+    idade_veiculo_anos: int
+    total_falhas: int
+    nome_empresa: str
+
+
+class RankingLinhasFalhas(BaseModel):
+    id_linha: int
+    cod_linha: str
+    nome_linha: Optional[str] = None
+    total_falhas: int
+
+
