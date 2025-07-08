@@ -13,6 +13,7 @@ from app.queries.linhas import (
     get_contagem_pontos_por_linha,
     get_contagem_linhas_por_bairro,
     get_pontos_geometria_linha,
+    get_todas_as_linhas,
 )
 
 router = APIRouter(prefix="/api/v1/linhas", tags=["Linhas e Pontos"])
@@ -22,6 +23,16 @@ class MetricaRanking(str, Enum):
     passageiros = "passageiros"
     viagens = "viagens"
     ocorrencias = "ocorrencias"
+
+
+@router.get("/", response_model=List[schemas.LinhaParaFiltro])
+def read_todas_as_linhas_para_filtro(db: Session = Depends(get_db)):
+    """
+    Retorna uma lista de todas as linhas de ônibus disponíveis para
+    serem usadas em filtros de dropdown.
+    """
+    linhas = get_todas_as_linhas(db)
+    return linhas
 
 
 @router.get("/ranking/{metrica}", response_model=schemas.RankingResponse)

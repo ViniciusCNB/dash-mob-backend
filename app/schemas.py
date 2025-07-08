@@ -78,3 +78,10 @@ class RankingLinhasFalhas(BaseModel):
     total_falhas: int
 
 
+class LinhaParaFiltro(BaseModel):
+    id_linha: int
+    cod_linha: str
+    nome_linha: Optional[str] = None
+
+    class Config:
+        from_attributes = True

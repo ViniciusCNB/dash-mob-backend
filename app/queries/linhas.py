@@ -3,6 +3,18 @@ from sqlalchemy import text
 from datetime import date
 
 
+def get_todas_as_linhas(db: Session):
+    """
+    Busca todas as linhas da tabela de dimensão para popular filtros.
+    """
+    query = text("""
+        SELECT id_linha, cod_linha, nome_linha
+        FROM dim_linha
+        ORDER BY cod_linha;
+    """)
+    return db.execute(query).all()
+
+
 def get_ranking_linhas(
     db: Session, metrica: str, data_inicio: date, data_fim: date, limit: int
 ):
