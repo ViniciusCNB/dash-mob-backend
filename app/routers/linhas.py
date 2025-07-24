@@ -14,6 +14,7 @@ from app.queries.linhas import (
     get_contagem_linhas_por_bairro,
     get_pontos_geometria_linha,
     get_todas_as_linhas,
+    get_dashboard_linha,
 )
 
 router = APIRouter(prefix="/api/v1/linhas", tags=["Linhas e Pontos"])
@@ -141,3 +142,43 @@ def read_geolocalizacao_dos_pontos_da_linha(
     feature_collection = {"type": "FeatureCollection", "features": features}
 
     return feature_collection
+
+
+@router.get("/{id_linha}/dashboard", response_model=schemas.LinhaDashboardResponse)
+def read_dashboard_de_linha(
+    id_linha: int,
+    data_inicio: date,
+    data_fim: date,
+    db: Session = Depends(get_db)
+):
+    """
+    Retorna um objeto completo com todas as estatísticas e dados de gráficos
+    para a página de análise de uma linha individual.
+    """
+    dados_dashboard = get_dashboard_linha(db, id_linha, data_inicio, data_fim)
+
+    if not dados_dashboard:
+        raise HTTPException(status_code=404, detail="Dados não encontrados para a linha no período especificado.")
+
+    # Formata a saída no schema esperado
+    response = {
+        "estatisticas_detalhadas": [
+            {"label": "Empresa", "value": dados_dashboard.empresa},
+            {"label": "Concessionária", "value": dados_dashboard.concessionaria},
+            {"label": "Viagens Realizadas", "value": int(dados_dashboard.viagens_realizadas or 0)},
+            {"label": "Viagens Não Realizadas", "value": int(dados_dashboard.viagens_nao_realizadas or 0)},
+            {"label": "Viagens Interrompidas", "value": int(dados_dashboard.viagens_interrompidas or 0)},
+            {"label": "Viagens com Zero Passageiros", "value": int(dados_dashboard.viagens_zero_passageiros or 0)},
+            {"label": "Extensão", "value": f"{dados_dashboard.extensao_linha or 0:.2f} km"},
+            {"label": "Bairros Percorridos", "value": int(dados_dashboard.bairros_percorridos or 0)},
+            {"label": "Pontos de Ônibus", "value": int(dados_dashboard.pontos_onibus or 0)},
+            {"label": "Média de Passag. por Mês", "value": int(dados_dashboard.media_pass_mes or 0)},
+            {"label": "Média de Passag. por Dia", "value": int(dados_dashboard.media_pass_dia or 0)},
+            {"label": "Média de Passag. por Viagem", "value": int(dados_dashboard.media_pass_viagem or 0)},
+        ],
+        "grafico_justificativas": dados_dashboard.grafico_justificativas or [],
+        "grafico_media_passageiros_dia_semana": dados_dashboard.grafico_media_passageiros_dia_semana or [],
+        "mapa_pontos": dados_dashboard.mapa_pontos or {"type": "FeatureCollection", "features": []},
+        "mapa_bairros": dados_dashboard.mapa_bairros or {"type": "FeatureCollection", "features": []}
+    }
+    return response

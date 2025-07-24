@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 
 
 # Exemplo de schema para os KPIs da Visão Geral
@@ -85,3 +85,21 @@ class LinhaParaFiltro(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class StatItem(BaseModel):
+    label: str
+    value: Union[int, float, str]
+
+
+class ChartDataItem(BaseModel):
+    category: str
+    value: float
+
+
+class LinhaDashboardResponse(BaseModel):
+    estatisticas_detalhadas: List[StatItem]
+    grafico_justificativas: List[ChartDataItem]
+    grafico_media_passageiros_dia_semana: List[ChartDataItem]
+    mapa_pontos: GeoJSONFeatureCollection
+    mapa_bairros: GeoJSONFeatureCollection

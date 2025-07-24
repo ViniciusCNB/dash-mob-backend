@@ -226,3 +226,101 @@ def get_pontos_geometria_linha(db: Session, cod_linha: str):
             p.cod_linha = :cod_linha AND p.geom IS NOT NULL;
     """)
     return db.execute(query, {"cod_linha": cod_linha}).all()
+
+
+def get_dashboard_linha(db: Session, id_linha_req: int, data_inicio: date, data_fim: date):
+    """
+    Busca todos os dados agregados, incluindo geometrias de pontos e bairros,
+    para o dashboard de uma linha específica.
+    [VERSÃO FINAL COM MAPA COMPLETO]
+    """
+    query = text("""
+    WITH
+    -- CTEs 1 a 8 (as mesmas que já tínhamos)
+    entidade_principal AS (
+        SELECT f.id_empresa, f.id_concessionaria FROM fact_viagens f JOIN dim_data d ON f.id_data = d.id_data
+        WHERE f.id_linha = :id_linha AND d.data_completa BETWEEN :data_inicio AND :data_fim
+        GROUP BY f.id_empresa, f.id_concessionaria ORDER BY COUNT(*) DESC LIMIT 1
+    ),
+    metricas_base AS (
+        SELECT SUM(total_viagens) AS total_viagens, SUM(total_passageiros) AS total_passageiros
+        FROM agg_metricas_linhas_diarias WHERE id_linha = :id_linha AND data BETWEEN :data_inicio AND :data_fim
+    ),
+    metricas_ocorrencias AS (
+        SELECT SUM(f.flag_viagem_nao_realizada) as viagens_nao_realizadas,
+               SUM(f.flag_viagem_interrompida) as viagens_interrompidas,
+               SUM(CASE WHEN f.passageiros = 0 THEN 1 ELSE 0 END) as viagens_zero_passageiros
+        FROM fact_viagens f JOIN dim_data d ON f.id_data = d.id_data
+        WHERE f.id_linha = :id_linha AND d.data_completa BETWEEN :data_inicio AND :data_fim
+    ),
+    metricas_temporais AS (
+        SELECT (SELECT total_passageiros FROM metricas_base) / NULLIF(COUNT(DISTINCT date_trunc('month', data)), 0) AS media_pass_mes,
+               (SELECT total_passageiros FROM metricas_base) / NULLIF(COUNT(DISTINCT data), 0) AS media_pass_dia,
+               (SELECT total_passageiros FROM metricas_base) / NULLIF((SELECT total_viagens FROM metricas_base), 0) AS media_pass_viagem
+        FROM agg_metricas_linhas_diarias WHERE id_linha = :id_linha AND data BETWEEN :data_inicio AND :data_fim
+    ),
+    contagem_bairros AS (
+        SELECT COUNT(*) as qtd FROM bridge_linha_bairro WHERE id_linha = :id_linha
+    ),
+    contagem_pontos AS (
+        SELECT COUNT(DISTINCT identificador_ponto_onibus) as qtd FROM staging_pontos_onibus_bh
+        WHERE cod_linha = (SELECT cod_linha FROM dim_linha WHERE id_linha = :id_linha)
+          AND ano_referencia = (SELECT MAX(ano_referencia) FROM staging_pontos_onibus_bh)
+          AND mes_referencia = (SELECT MAX(mes_referencia) FROM staging_pontos_onibus_bh WHERE ano_referencia = (SELECT MAX(ano_referencia) FROM staging_pontos_onibus_bh))
+    ),
+    justificativas AS (
+        SELECT j.nome_justificativa as category, COUNT(*) as value FROM fact_viagens f
+        JOIN dim_data d ON f.id_data = d.id_data JOIN dim_justificativa j ON f.id_justificativa = j.id_justificativa
+        WHERE f.id_linha = :id_linha AND d.data_completa BETWEEN :data_inicio AND :data_fim
+        GROUP BY j.nome_justificativa
+    ),
+    pass_dia_semana AS (
+        SELECT d.dia_da_semana as category, AVG(f.passageiros) as value FROM fact_viagens f
+        JOIN dim_data d ON f.id_data = d.id_data WHERE f.id_linha = :id_linha AND d.data_completa BETWEEN :data_inicio AND :data_fim
+        GROUP BY d.dia_da_semana, EXTRACT(ISODOW FROM d.data_completa) ORDER BY EXTRACT(ISODOW FROM d.data_completa)
+    ),
+    geometrias_pontos AS (
+        SELECT json_build_object('type', 'Feature', 'geometry', ST_AsGeoJSON(p.geom)::json, 'properties', json_build_object('identificador_ponto', p.identificador_ponto_onibus)) as feature
+        FROM (SELECT DISTINCT ON (identificador_ponto_onibus) identificador_ponto_onibus, geom FROM staging_pontos_onibus_bh
+              WHERE cod_linha = (SELECT cod_linha FROM dim_linha WHERE id_linha = :id_linha)
+                AND ano_referencia = (SELECT MAX(ano_referencia) FROM staging_pontos_onibus_bh)
+                AND mes_referencia = (SELECT MAX(mes_referencia) FROM staging_pontos_onibus_bh WHERE ano_referencia = (SELECT MAX(ano_referencia) FROM staging_pontos_onibus_bh))
+        ) p WHERE p.geom IS NOT NULL
+    ),
+    -- [NOVA CTE] CTE 10: Coleta as geometrias dos BAIRROS por onde a linha passa
+    geometrias_bairros AS (
+        SELECT
+            json_build_object(
+                'type', 'Feature',
+                'geometry', ST_AsGeoJSON(b.geom)::json,
+                'properties', json_build_object('nome_bairro', b.nome_bairro)
+            ) as feature
+        FROM
+            bridge_linha_bairro blb
+        JOIN
+            dim_bairro b ON blb.id_bairro = b.id_bairro
+        WHERE
+            blb.id_linha = :id_linha
+    )
+    -- Query Final: Junta todas as informações calculadas
+    SELECT
+      (SELECT e.nome_empresa FROM dim_empresa e JOIN entidade_principal ep ON e.id_empresa = ep.id_empresa) as empresa,
+      (SELECT c.nome_concessionaria FROM dim_concessionaria c JOIN entidade_principal ep ON c.id_concessionaria = ep.id_concessionaria) as concessionaria,
+      (SELECT total_viagens FROM metricas_base) as viagens_realizadas,
+      (SELECT viagens_nao_realizadas FROM metricas_ocorrencias) as viagens_nao_realizadas,
+      (SELECT viagens_interrompidas FROM metricas_ocorrencias) as viagens_interrompidas,
+      (SELECT viagens_zero_passageiros FROM metricas_ocorrencias) as viagens_zero_passageiros,
+      (SELECT extensao_km FROM dim_linha WHERE id_linha = :id_linha) as extensao_linha,
+      (SELECT qtd FROM contagem_bairros) as bairros_percorridos,
+      (SELECT qtd FROM contagem_pontos) as pontos_onibus,
+      (SELECT media_pass_mes FROM metricas_temporais) as media_pass_mes,
+      (SELECT media_pass_dia FROM metricas_temporais) as media_pass_dia,
+      (SELECT media_pass_viagem FROM metricas_temporais) as media_pass_viagem,
+      (SELECT json_agg(j) FROM justificativas j) as grafico_justificativas,
+      (SELECT json_agg(pds) FROM pass_dia_semana pds) as grafico_media_passageiros_dia_semana,
+      (SELECT json_build_object('type', 'FeatureCollection', 'features', COALESCE(json_agg(gp.feature), '[]'::json)) FROM geometrias_pontos gp) as mapa_pontos,
+      -- [NOVA COLUNA] Agrega todas as features dos bairros em uma única FeatureCollection GeoJSON
+      (SELECT json_build_object('type', 'FeatureCollection', 'features', COALESCE(json_agg(gb.feature), '[]'::json)) FROM geometrias_bairros gb) as mapa_bairros;
+    """)
+    result = db.execute(query, {"id_linha": id_linha_req, "data_inicio": data_inicio, "data_fim": data_fim}).fetchone()
+    return result
