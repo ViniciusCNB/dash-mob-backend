@@ -154,3 +154,28 @@ class BairroDashboardResponse(BaseModel):
     grafico_media_passageiros_dia_semana: List[ChartDataItem]
     mapa_geometria_bairro: GeoJSONFeatureCollection
     mapa_pontos_bairro: GeoJSONFeatureCollection
+
+
+# Schema para uma concessionária na lista de filtros
+class ConcessionariaParaFiltro(BaseModel):
+    id_concessionaria: int
+    codigo_concessionaria: int
+    nome_concessionaria: str
+
+
+# Schema para o ranking comparativo de concessionárias
+class RankingConcessionariaItem(BaseModel):
+    id_concessionaria: int
+    codigo_concessionaria: int
+    nome_concessionaria: str
+    total_linhas: int
+    total_ocorrencias: int
+    total_passageiros: int
+    taxa_ocorrencias_por_10k_viagens: float
+
+
+# Schema para a resposta do dashboard de uma concessionária individual
+class ConcessionariaDashboardResponse(BaseModel):
+    estatisticas_detalhadas: List[StatItem]
+    grafico_linhas_mais_utilizadas: List[RankingItem]
+    grafico_media_passageiros_dia_semana: List[ChartDataItem]
