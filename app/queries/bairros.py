@@ -13,7 +13,11 @@ def get_ranking_bairros(db: Session, metrica: str, data_inicio: date, data_fim: 
     """ Retorna rankings de bairros por linhas, ocorrências ou pontos. """
     if metrica == 'linhas':
         query = text("""
-            SELECT b.id_bairro as id, b.nome_bairro as nome, COUNT(blb.id_linha) as valor
+            SELECT
+                b.id_bairro as id,
+                b.id_bairro::TEXT as codigo, -- [CORREÇÃO] Adicionada a coluna 'codigo'
+                b.nome_bairro as nome,
+                COUNT(blb.id_linha) as valor
             FROM bridge_linha_bairro blb
             JOIN dim_bairro b ON blb.id_bairro = b.id_bairro
             GROUP BY b.id_bairro, b.nome_bairro ORDER BY valor DESC LIMIT :limit;
@@ -21,7 +25,11 @@ def get_ranking_bairros(db: Session, metrica: str, data_inicio: date, data_fim: 
         return db.execute(query, {"limit": limit}).all()
     elif metrica == 'ocorrencias':
         query = text("""
-            SELECT b.id_bairro as id, b.nome_bairro as nome, SUM(agg.total_ocorrencias) as valor
+            SELECT
+                b.id_bairro as id,
+                b.id_bairro::TEXT as codigo, -- [CORREÇÃO] Adicionada a coluna 'codigo'
+                b.nome_bairro as nome,
+                SUM(agg.total_ocorrencias) as valor
             FROM agg_metricas_bairros_diarias agg
             JOIN dim_bairro b ON agg.id_bairro = b.id_bairro
             WHERE agg.data BETWEEN :data_inicio AND :data_fim
@@ -30,7 +38,11 @@ def get_ranking_bairros(db: Session, metrica: str, data_inicio: date, data_fim: 
         return db.execute(query, {"data_inicio": data_inicio, "data_fim": data_fim, "limit": limit}).all()
     elif metrica == 'pontos':
         query = text("""
-            SELECT b.id_bairro as id, b.nome_bairro as nome, COUNT(bpb.identificador_ponto_onibus) as valor
+            SELECT
+                b.id_bairro as id,
+                b.id_bairro::TEXT as codigo, -- [CORREÇÃO] Adicionada a coluna 'codigo'
+                b.nome_bairro as nome,
+                COUNT(bpb.identificador_ponto_onibus) as valor
             FROM bridge_ponto_bairro bpb
             JOIN dim_bairro b ON bpb.id_bairro = b.id_bairro
             GROUP BY b.id_bairro, b.nome_bairro ORDER BY valor DESC LIMIT :limit;
