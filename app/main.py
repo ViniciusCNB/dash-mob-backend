@@ -10,6 +10,7 @@ app = FastAPI(
 app.include_router(geral.router)
 app.include_router(linhas.router)
 app.include_router(ocorrencias.router)
+app.include_router(bairros.router)
 app.include_router(estudos.router)
 
 

@@ -140,3 +140,17 @@ class JustificativaDashboardResponse(BaseModel):
     grafico_media_ocorrencias_dia_semana: List[ChartDataItem]
     id_linha_mais_afetada: Optional[int] = None  # Para o front-end buscar o mapa
 
+
+# Schema para um bairro na lista de filtros
+class BairroParaFiltro(BaseModel):
+    id_bairro: int
+    nome_bairro: str
+
+
+# Schema para a resposta do dashboard de um bairro individual, agora com dados do mapa
+class BairroDashboardResponse(BaseModel):
+    estatisticas_detalhadas: List[StatItem]
+    grafico_linhas_mais_utilizadas: List[RankingItem]
+    grafico_media_passageiros_dia_semana: List[ChartDataItem]
+    mapa_geometria_bairro: GeoJSONFeatureCollection
+    mapa_pontos_bairro: GeoJSONFeatureCollection
