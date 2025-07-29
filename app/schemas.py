@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, Union
+from datetime import date
 
 
 # Exemplo de schema para os KPIs da Visão Geral
@@ -103,3 +104,39 @@ class LinhaDashboardResponse(BaseModel):
     grafico_media_passageiros_dia_semana: List[ChartDataItem]
     mapa_pontos: GeoJSONFeatureCollection
     mapa_bairros: GeoJSONFeatureCollection
+
+
+# Schema genérico para rankings (reutilizável)
+class RankingOcorrenciasItem(BaseModel):
+    id: int
+    nome: str
+    total_ocorrencias: int
+
+
+# Schema para a análise de tendência temporal
+class TendenciaTemporalItem(BaseModel):
+    periodo: date  # Usaremos o primeiro dia do mês como referência
+    total_ocorrencias: int
+
+
+# Schema para a análise de ocorrências por tipo de dia
+class OcorrenciasPorTipoDiaItem(BaseModel):
+    tipo_dia: str
+    total_ocorrencias: int
+
+
+# Schema para um item de ranking (pode ser usado para linhas ou veículos)
+class RankingOcorrenciaDetalheItem(BaseModel):
+    id: int
+    codigo: str  # Para cod_linha ou identificador_veiculo
+    valor: int  # Total de ocorrências
+
+
+# O modelo de resposta completo para a página de detalhes da ocorrência
+class JustificativaDashboardResponse(BaseModel):
+    estatisticas_detalhadas: List[StatItem]
+    grafico_linhas_afetadas: List[RankingOcorrenciaDetalheItem]
+    grafico_veiculos_afetados: List[RankingOcorrenciaDetalheItem]
+    grafico_media_ocorrencias_dia_semana: List[ChartDataItem]
+    id_linha_mais_afetada: Optional[int] = None  # Para o front-end buscar o mapa
+

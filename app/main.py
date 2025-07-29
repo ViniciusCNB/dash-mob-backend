@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import geral, linhas, estudos
+from app.routers import geral, linhas, estudos, ocorrencias, bairros
 
 app = FastAPI(
     title="DashMobi API",
@@ -9,6 +9,7 @@ app = FastAPI(
 
 app.include_router(geral.router)
 app.include_router(linhas.router)
+app.include_router(ocorrencias.router)
 app.include_router(estudos.router)
 
 
