@@ -202,3 +202,28 @@ class VeiculoDashboardResponse(BaseModel):
     grafico_justificativas: List[ChartDataItem]
     grafico_linhas_atendidas: List[RankingItem]
     grafico_media_passageiros_dia_semana: List[ChartDataItem]
+
+
+# Schema para uma empresa na lista de filtros
+class EmpresaParaFiltro(BaseModel):
+    id_empresa: int
+    nome_empresa: str
+
+
+# Schema para o ranking comparativo de empresas
+class RankingEmpresaItem(BaseModel):
+    id_empresa: int
+    nome_empresa: str
+    total_linhas: int
+    total_ocorrencias: int
+    total_passageiros: int
+    taxa_ocorrencias_por_10k_viagens: float
+
+
+# Schema para a resposta do dashboard de uma empresa individual
+class EmpresaDashboardResponse(BaseModel):
+    estatisticas_detalhadas: List[StatItem]
+    grafico_justificativas: List[ChartDataItem]
+    grafico_linhas_mais_utilizadas: List[RankingItem]
+    grafico_media_passageiros_dia_semana: List[ChartDataItem]
+    grafico_evolucao_passageiros_ano: List[ChartDataItem]
