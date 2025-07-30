@@ -179,3 +179,26 @@ class ConcessionariaDashboardResponse(BaseModel):
     estatisticas_detalhadas: List[StatItem]
     grafico_linhas_mais_utilizadas: List[RankingItem]
     grafico_media_passageiros_dia_semana: List[ChartDataItem]
+
+
+# Schema para um veículo na lista de filtros
+class VeiculoParaFiltro(BaseModel):
+    id_veiculo: int
+    identificador_veiculo: int
+
+
+# Schema para o ranking comparativo de veículos
+class RankingVeiculoItem(BaseModel):
+    id_veiculo: int
+    identificador_veiculo: int
+    nome_empresa: Optional[str] = None
+    idade_veiculo_anos: Optional[int] = None
+    valor: Union[int, float]
+
+
+# Schema para a resposta do dashboard de um veículo individual
+class VeiculoDashboardResponse(BaseModel):
+    estatisticas_detalhadas: List[StatItem]
+    grafico_justificativas: List[ChartDataItem]
+    grafico_linhas_atendidas: List[RankingItem]
+    grafico_media_passageiros_dia_semana: List[ChartDataItem]
